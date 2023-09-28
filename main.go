@@ -46,7 +46,9 @@ func main() {
 	// /api/v1 route
 	v1Route := api.Group("/v1")
 	v1Route.Get("/users", userHandler.HandleGetUsers)
+	v1Route.Post("/users", userHandler.HandlePostUser)
 	v1Route.Get("/users/:id", userHandler.HandleGetUser)
-
+	v1Route.Delete("/users/:id", userHandler.HandleDeleteUser)
+	v1Route.Put("/users/:id", userHandler.HandlePutUser)
 	app.Listen(*listenAddr)
 }
