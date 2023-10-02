@@ -48,19 +48,19 @@ func CreateUserFromParams(params *CreateUserParams) (*User, error) {
 	}, nil
 }
 
-func (params *CreateUserParams) Validate() []string {
-	errors := []string{}
+func (params *CreateUserParams) Validate() map[string]string {
+	errors := map[string]string{}
 	if len(params.FirstName) < MinFirstNameLen {
-		errors = append(errors, fmt.Sprintf("firstname length should be at least %d characters", MinFirstNameLen))
+		errors["firstName"] = fmt.Sprintf("firstname length should be at least %d characters", MinFirstNameLen)
 	}
 	if len(params.LastName) < MinLastNameLen {
-		errors = append(errors, fmt.Sprintf("lastname length should be at least %d characters", MinLastNameLen))
+		errors["lastName"] = fmt.Sprintf("lastname length should be at least %d characters", MinLastNameLen)
 	}
 	if !isValidEmail(params.Email) {
-		errors = append(errors, fmt.Sprintf("Email is invalid"))
+		errors["email"] = "Email is invalid"
 	}
 	if len(params.Password) < MinPasswordLen {
-		errors = append(errors, fmt.Sprintf("Password length should be at least %d characters", MinPasswordLen))
+		errors["password"] = fmt.Sprintf("Password length should be at least %d characters", MinPasswordLen)
 	}
 	return errors
 }

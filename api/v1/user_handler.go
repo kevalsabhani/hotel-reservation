@@ -6,6 +6,8 @@ import (
 	"github.com/gofiber/fiber/v2"
 	"github.com/kevalsabhani/hotel-reservation/db"
 	"github.com/kevalsabhani/hotel-reservation/types"
+	"go.mongodb.org/mongo-driver/bson"
+	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/mongo"
 )
 
@@ -48,7 +50,12 @@ func (h *UserHandler) HandleGetUsers(c *fiber.Ctx) error {
 
 func (h *UserHandler) HandleGetUser(c *fiber.Ctx) error {
 	id := c.Params("id")
-	user, err := h.userStore.GetUserByID(c.Context(), id)
+	oId, err := primitive.ObjectIDFromHex(id)
+	if err != nil {
+		return c.Status(fiber.StatusBadRequest).JSON(map[string]string{"error": "ID is invalid"})
+	}
+	filter := bson.M{"_id": oId}
+	user, err := h.userStore.GetUserByID(c.Context(), filter)
 	if err != nil {
 		if errors.Is(err, mongo.ErrNoDocuments) {
 			return c.Status(fiber.StatusNotFound).JSON(map[string]string{"error": "Not found"})
@@ -60,7 +67,12 @@ func (h *UserHandler) HandleGetUser(c *fiber.Ctx) error {
 
 func (h *UserHandler) HandleDeleteUser(c *fiber.Ctx) error {
 	userID := c.Params("id")
-	if err := h.userStore.DeleteUser(c.Context(), userID); err != nil {
+	oId, err := primitive.ObjectIDFromHex(userID)
+	if err != nil {
+		return err
+	}
+	filter := bson.M{"_id": oId}
+	if err := h.userStore.DeleteUser(c.Context(), filter); err != nil {
 		return nil
 	}
 	return c.Status(fiber.StatusOK).JSON(map[string]string{"deleted": userID})
@@ -72,7 +84,13 @@ func (h *UserHandler) HandlePutUser(c *fiber.Ctx) error {
 	if err := c.BodyParser(params); err != nil {
 		return err
 	}
-	if err := h.userStore.UpdateUser(c.Context(), userID, params); err != nil {
+	oId, err := primitive.ObjectIDFromHex(userID)
+	if err != nil {
+		return c.Status(fiber.StatusBadRequest).JSON(map[string]string{"error": "ID is invalid"})
+	}
+	filter := bson.M{"_id": oId}
+	update := bson.M{"$set": params.ToBSON()}
+	if err := h.userStore.UpdateUser(c.Context(), filter, update); err != nil {
 		return err
 	}
 	return c.Status(fiber.StatusOK).JSON(map[string]string{"update": userID})

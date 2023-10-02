@@ -13,10 +13,10 @@ const userColl = "users"
 
 type UserStore interface {
 	InsertUser(context.Context, *types.User) (*types.User, error)
-	GetUserByID(context.Context, string) (*types.User, error)
+	GetUserByID(context.Context, bson.M) (*types.User, error)
 	GetUsers(context.Context) ([]*types.User, error)
-	DeleteUser(context.Context, string) error
-	UpdateUser(context.Context, string, *types.UpdateUserParams) error
+	DeleteUser(context.Context, bson.M) error
+	UpdateUser(context.Context, bson.M, bson.M) error
 }
 
 type MongoUserStore struct {
@@ -52,40 +52,23 @@ func (s *MongoUserStore) GetUsers(ctx context.Context) ([]*types.User, error) {
 	return users, nil
 }
 
-func (s *MongoUserStore) GetUserByID(ctx context.Context, id string) (*types.User, error) {
-	oId, err := primitive.ObjectIDFromHex(id)
-	if err != nil {
-		return nil, err
-	}
-
+func (s *MongoUserStore) GetUserByID(ctx context.Context, filter bson.M) (*types.User, error) {
 	user := &types.User{}
-	if err := s.coll.FindOne(ctx, bson.M{"_id": oId}).Decode(user); err != nil {
+	if err := s.coll.FindOne(ctx, filter).Decode(user); err != nil {
 		return nil, err
 	}
 	return user, nil
 }
 
-func (s *MongoUserStore) DeleteUser(ctx context.Context, id string) error {
-	oId, err := primitive.ObjectIDFromHex(id)
-	if err != nil {
-		return err
-	}
-
-	_, err = s.coll.DeleteOne(ctx, bson.M{"_id": oId})
+func (s *MongoUserStore) DeleteUser(ctx context.Context, filter bson.M) error {
+	_, err := s.coll.DeleteOne(ctx, filter)
 	if err != nil {
 		return err
 	}
 	return nil
 }
 
-func (s *MongoUserStore) UpdateUser(ctx context.Context, id string, values *types.UpdateUserParams) error {
-	oId, err := primitive.ObjectIDFromHex(id)
-	if err != nil {
-		return err
-	}
-	_, err = s.coll.UpdateOne(ctx, bson.M{"_id": oId}, bson.M{"$set": values.ToBSON()})
-	if err != nil {
-		return err
-	}
-	return nil
+func (s *MongoUserStore) UpdateUser(ctx context.Context, filter bson.M, update bson.M) error {
+	_, err := s.coll.UpdateOne(ctx, filter, update)
+	return err
 }

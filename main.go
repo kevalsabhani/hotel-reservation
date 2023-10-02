@@ -12,22 +12,17 @@ import (
 	"go.mongodb.org/mongo-driver/mongo/options"
 )
 
-const (
-	dbUri    = "mongodb://localhost:27017"
-	database = "hotel-reservation"
-	userColl = "users"
-)
-
 func main() {
 	listenAddr := flag.String("listenAddr", ":3000", "Get Server Port")
 	flag.Parse()
 
-	client, err := mongo.Connect(context.TODO(), options.Client().ApplyURI(dbUri))
+	client, err := mongo.Connect(context.TODO(), options.Client().ApplyURI(db.DBURI))
 	if err != nil {
 		log.Fatal(err)
 	}
 
 	userHandler := v1.NewUserHandler(db.NewMongoUserStore(client))
+	hotelHandler := v1.NewHotelHandler(db.NewMongoHotelStore(client), db.NewMongoRoomStore(client))
 
 	app := fiber.New(
 		fiber.Config{
@@ -35,20 +30,21 @@ func main() {
 				return c.JSON(map[string]string{"error": err.Error()})
 			},
 		})
-	// status check
-	app.Get("/", func(c *fiber.Ctx) error {
-		return c.JSON(map[string]string{"status": "ok"})
-	})
-
-	// /api route
 	api := app.Group("/api")
 
 	// /api/v1 route
 	v1Route := api.Group("/v1")
+
+	// user routes
 	v1Route.Get("/users", userHandler.HandleGetUsers)
 	v1Route.Post("/users", userHandler.HandlePostUser)
 	v1Route.Get("/users/:id", userHandler.HandleGetUser)
 	v1Route.Delete("/users/:id", userHandler.HandleDeleteUser)
 	v1Route.Put("/users/:id", userHandler.HandlePutUser)
+
+	// hotel routes
+	v1Route.Get("/hotels", hotelHandler.HandleGetHotels)
+	v1Route.Get("/hotels/:id", hotelHandler.HandleGetHotel)
+
 	app.Listen(*listenAddr)
 }
