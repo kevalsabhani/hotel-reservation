@@ -20,17 +20,26 @@ func main() {
 	if err != nil {
 		log.Fatal(err)
 	}
-
-	userHandler := v1.NewUserHandler(db.NewMongoUserStore(client))
-	hotelHandler := v1.NewHotelHandler(db.NewMongoHotelStore(client), db.NewMongoRoomStore(client))
-
-	app := fiber.New(
-		fiber.Config{
-			ErrorHandler: func(c *fiber.Ctx, err error) error {
-				return c.JSON(map[string]string{"error": err.Error()})
-			},
-		})
-	api := app.Group("/api")
+	var (
+		userStore  = db.NewMongoUserStore(client)
+		hotelStore = db.NewMongoHotelStore(client)
+		roomStore  = db.NewMongoRoomStore(client)
+		store      = &db.Store{
+			User:  userStore,
+			Hotel: hotelStore,
+			Room:  roomStore,
+		}
+		userHandler  = v1.NewUserHandler(userStore)
+		hotelHandler = v1.NewHotelHandler(store)
+		roomHandler  = v1.NewRoomHandler(roomStore)
+		app          = fiber.New(
+			fiber.Config{
+				ErrorHandler: func(c *fiber.Ctx, err error) error {
+					return c.JSON(map[string]string{"error": err.Error()})
+				},
+			})
+		api = app.Group("/api")
+	)
 
 	// /api/v1 route
 	v1Route := api.Group("/v1")
@@ -45,6 +54,15 @@ func main() {
 	// hotel routes
 	v1Route.Get("/hotels", hotelHandler.HandleGetHotels)
 	v1Route.Get("/hotels/:id", hotelHandler.HandleGetHotel)
+	v1Route.Get("/hotels/:id/rooms", hotelHandler.HandleGetRoomsByHotelID)
+	v1Route.Put("/hotels/:id", hotelHandler.HandleGetHotel)
+	v1Route.Delete("/hotels/:id", hotelHandler.HandleGetHotel)
+
+	// room routes
+	v1Route.Get("/rooms", roomHandler.HandleGetRooms)
+	v1Route.Get("/rooms/:id", roomHandler.HandleGetRoom)
+	// v1Route.Put("/rooms/:id", roomHandler.HandleGetRoom)
+	// v1Route.Delete("/rooms/:id", roomHandler.HandleGetRoom)
 
 	app.Listen(*listenAddr)
 }
